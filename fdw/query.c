@@ -528,6 +528,9 @@ findPaths(PlannerInfo *root, RelOptInfo *baserel, List *possiblePaths,
             NULL, /* default pathtarget */
 #endif
             nbrows,
+#if PG_VERSION_NUM >= 180000
+            0, /* disabled_nodes */
+#endif
             startupCost,
 #if PG_VERSION_NUM >= 90600
             nbrows * baserel->reltarget->width,
@@ -538,6 +541,9 @@ findPaths(PlannerInfo *root, RelOptInfo *baserel, List *possiblePaths,
             NULL,
 #if PG_VERSION_NUM >= 90500
             NULL,
+#endif
+#if PG_VERSION_NUM >= 180000
+            NULL, /* fdw_restrictinfo */
 #endif
             NULL);
 
@@ -574,7 +580,12 @@ deparse_sortgroup(PlannerInfo *root, Oid foreigntableid, RelOptInfo *rel)
 
     if ((expr = fdw_get_em_expr(ec, rel)))
     {
-      md->reversed = (key->pk_strategy == BTGreaterStrategyNumber);
+      md->reversed =
+#if PG_VERSION_NUM >= 180000
+          (key->pk_cmptype == COMPARE_GT);
+#else
+          (key->pk_strategy == BTGreaterStrategyNumber);
+#endif
       md->nulls_first = key->pk_nulls_first;
       md->key = key;
 

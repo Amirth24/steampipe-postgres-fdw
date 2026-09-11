@@ -68,6 +68,15 @@ func newRemoteHub() (*RemoteHub, error) {
 
 // get the install folder - derive from our working folder
 func getInstallDirectory() (string, error) {
+	// STEAMPIPE_INSTALL_DIR override: the standard steampipe cwd-relative derivation
+	// (wd/../../..) assumes the process cwd sits 3 levels under the steampipe install
+	// root, which only holds true inside steampipe's own embedded Postgres data dir.
+	// A standalone Postgres server (e.g. Homebrew postgresql@18) has its own
+	// data_directory as cwd, so that math resolves to an unrelated, unwritable system
+	// path (e.g. /opt). Let the operator pin the real directory explicitly.
+	if dir := os.Getenv("STEAMPIPE_INSTALL_DIR"); dir != "" {
+		return dir, nil
+	}
 	// we need to do this as we are sharing steampipe code to read the config
 	// and steampipe may set the install folder from a cmd line arg, so it cannot be hard coded
 	wd, err := os.Getwd()
